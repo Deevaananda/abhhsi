@@ -63,7 +63,12 @@ type FallbackStore = {
   emergencyAlerts: Record<string, EmergencyAlert>
 }
 
-const STORE_FILE = path.join(process.cwd(), '.data', 'api-fallback-store.json')
+const STORE_ROOT =
+  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+    ? '/tmp'
+    : path.join(process.cwd(), '.data')
+
+const STORE_FILE = path.join(STORE_ROOT, 'api-fallback-store.json')
 
 let cachedStore: FallbackStore | null = null
 

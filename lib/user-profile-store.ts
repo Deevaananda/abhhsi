@@ -19,7 +19,12 @@ type UserProfileStore = {
   profiles: Record<string, UserSettingsProfile>
 }
 
-const STORE_FILE = path.join(process.cwd(), '.data', 'user-profiles.json')
+const STORE_ROOT =
+  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+    ? '/tmp'
+    : path.join(process.cwd(), '.data')
+
+const STORE_FILE = path.join(STORE_ROOT, 'user-profiles.json')
 
 let cachedStore: UserProfileStore | null = null
 

@@ -12,13 +12,23 @@ import type {
   WearableSnapshot,
 } from '@/lib/biosync/types'
 
-const LOCAL_STORE_FILE = path.join(process.cwd(), '.data', 'biosync-store.json')
+const LOCAL_STORE_ROOT =
+  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+    ? '/tmp'
+    : path.join(process.cwd(), '.data')
+
+const LOCAL_STORE_FILE = path.join(LOCAL_STORE_ROOT, 'biosync-store.json')
 
 const DB_FALLBACK_PATTERNS = [
   'Environment variable not found: DATABASE_URL',
   'Authentication failed against database server',
   "Can't reach database server",
   'Connection refused',
+  '@prisma/client did not initialize yet',
+  'Prisma Client could not locate the Query Engine',
+  '.prisma/client',
+  'Error validating datasource `db`',
+  'prisma generate',
   'P1000',
   'P1001',
   'P1010',

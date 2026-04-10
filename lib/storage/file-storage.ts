@@ -2,6 +2,11 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { put } from '@vercel/blob'
 
+const LOCAL_UPLOAD_ROOT =
+  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+    ? path.join('/tmp', 'uploads')
+    : path.join(process.cwd(), 'public', 'uploads')
+
 interface StoredFile {
   fileName: string
   url: string
@@ -27,7 +32,7 @@ async function storeOnVercelBlob(userId: string, file: File): Promise<StoredFile
 
 async function storeLocally(userId: string, file: File): Promise<StoredFile> {
   const extension = path.extname(file.name) || '.pdf'
-  const targetFolder = path.join(process.cwd(), 'public', 'uploads', 'blood-reports', userId)
+  const targetFolder = path.join(LOCAL_UPLOAD_ROOT, 'blood-reports', userId)
   const targetName = `${crypto.randomUUID()}-${safeFileName(path.basename(file.name, extension))}${extension}`
   const targetPath = path.join(targetFolder, targetName)
 
@@ -37,7 +42,11 @@ async function storeLocally(userId: string, file: File): Promise<StoredFile> {
 
   return {
     fileName: targetName,
-    url: `/uploads/blood-reports/${userId}/${targetName}`,
+    // Files written in serverless temp storage are ephemeral and not publicly served.
+    url:
+      process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+        ? ''
+        : `/uploads/blood-reports/${userId}/${targetName}`,
   }
 }
 

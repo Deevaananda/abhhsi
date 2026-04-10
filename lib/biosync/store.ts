@@ -8,7 +8,7 @@ import type {
   MoodLog,
   WearableSnapshot,
 } from '@/lib/biosync/types'
-import { prisma } from '@/lib/db'
+import type { PrismaClient } from '@prisma/client'
 import {
   addLocalBloodReport,
   addLocalLabBooking,
@@ -25,6 +25,23 @@ import {
 function toDate(value: string): Date {
   const parsed = new Date(value)
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed
+}
+
+async function getPrismaClient(): Promise<PrismaClient | null> {
+  if (shouldUseLocalStore()) {
+    return null
+  }
+
+  try {
+    const { prisma } = await import('@/lib/db')
+    return prisma
+  } catch (error) {
+    if (shouldUseLocalStore(error)) {
+      return null
+    }
+
+    throw error
+  }
 }
 
 type ProfileWithRelations = NonNullable<Awaited<ReturnType<typeof getProfileWithRelations>>>
@@ -115,6 +132,11 @@ function mapState(profile: ProfileWithRelations): BioSyncUserState {
 }
 
 async function getProfileWithRelations(userId: string) {
+  const prisma = await getPrismaClient()
+  if (!prisma) {
+    return null
+  }
+
   return prisma.bioSyncProfile.findUnique({
     where: { id: userId },
     include: {
@@ -151,6 +173,11 @@ export async function createBioSyncUser(
   input: Omit<BioSyncProfile, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<BioSyncUserState> {
   if (shouldUseLocalStore()) {
+    return createLocalBioSyncUser(input)
+  }
+
+  const prisma = await getPrismaClient()
+  if (!prisma) {
     return createLocalBioSyncUser(input)
   }
 
@@ -219,6 +246,11 @@ export async function saveBioSyncUserState(state: BioSyncUserState): Promise<Bio
     return saveLocalBioSyncUserState(state)
   }
 
+  const prisma = await getPrismaClient()
+  if (!prisma) {
+    return saveLocalBioSyncUserState(state)
+  }
+
   try {
     await prisma.bioSyncProfile.update({
       where: {
@@ -245,6 +277,11 @@ export async function addBloodReport(
   report: Omit<BloodReport, 'id' | 'uploadedAt'>
 ): Promise<BloodReport> {
   if (shouldUseLocalStore()) {
+    return addLocalBloodReport(state, report)
+  }
+
+  const prisma = await getPrismaClient()
+  if (!prisma) {
     return addLocalBloodReport(state, report)
   }
 
@@ -293,6 +330,11 @@ export async function setLifestyle(
     return setLocalLifestyle(state, lifestyle)
   }
 
+  const prisma = await getPrismaClient()
+  if (!prisma) {
+    return setLocalLifestyle(state, lifestyle)
+  }
+
   try {
     const updated = await prisma.bioSyncLifestyle.upsert({
       where: {
@@ -329,6 +371,11 @@ export async function addWearableSnapshot(
   snapshot: Omit<WearableSnapshot, 'id' | 'syncedAt'>
 ): Promise<WearableSnapshot> {
   if (shouldUseLocalStore()) {
+    return addLocalWearableSnapshot(state, snapshot)
+  }
+
+  const prisma = await getPrismaClient()
+  if (!prisma) {
     return addLocalWearableSnapshot(state, snapshot)
   }
 
@@ -377,6 +424,11 @@ export async function addMoodLog(
     return addLocalMoodLog(state, moodLog)
   }
 
+  const prisma = await getPrismaClient()
+  if (!prisma) {
+    return addLocalMoodLog(state, moodLog)
+  }
+
   try {
     const created = await prisma.bioSyncMoodLog.create({
       data: {
@@ -409,6 +461,11 @@ export async function setBioRoutineSettings(
   settings: Pick<BioRoutineSettings, 'enabled' | 'wakeTime'>
 ): Promise<BioRoutineSettings> {
   if (shouldUseLocalStore()) {
+    return setLocalBioRoutineSettings(state, settings)
+  }
+
+  const prisma = await getPrismaClient()
+  if (!prisma) {
     return setLocalBioRoutineSettings(state, settings)
   }
 
@@ -448,6 +505,11 @@ export async function addLabBooking(
   booking: Omit<LabBooking, 'id' | 'createdAt' | 'status'>
 ): Promise<LabBooking> {
   if (shouldUseLocalStore()) {
+    return addLocalLabBooking(state, booking)
+  }
+
+  const prisma = await getPrismaClient()
+  if (!prisma) {
     return addLocalLabBooking(state, booking)
   }
 
