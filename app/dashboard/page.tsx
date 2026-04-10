@@ -62,17 +62,20 @@ export default function DashboardPage() {
           return
         }
 
-        const [user, freshness, reminders, longevity, cycle] = await Promise.all([
-          apiService.getBioSyncUser(storedUserId),
-          apiService.getBloodReportFreshness(storedUserId),
-          apiService.getDynamicReminders(storedUserId),
-          apiService.getLongevityScore(storedUserId),
-          apiService.getContinuousCycleSummary(storedUserId),
-        ])
+        const user = await apiService.getBioSyncUser(storedUserId)
 
         if (!user.success || !user.data) {
           throw new Error(user.error ?? 'Unable to load BioSync profile.')
         }
+
+        const [freshness, reminders, longevity, cycle] = await Promise.all([
+          apiService.getBloodReportFreshness(storedUserId),
+          apiService.getDynamicReminders(storedUserId),
+          apiService.getLongevityScore(storedUserId),
+          user.data.currentStep >= 12
+            ? apiService.getContinuousCycleSummary(storedUserId)
+            : Promise.resolve({ success: false } as const),
+        ])
 
         setDashboardData({
           profileName: user.data.profile?.name ?? 'User',
