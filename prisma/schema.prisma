@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model BioSyncProfile {
+  id             String                    @id @default(uuid())
+  name           String
+  age            Int
+  gender         String
+  heightCm       Float
+  weightKg       Float
+  activityLevel  String
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  bloodReports   BioSyncBloodReport[]
+  lifestyle      BioSyncLifestyle?
+  wearables      BioSyncWearableSnapshot[]
+  moodLogs       BioSyncMoodLog[]
+  routineSetting BioSyncRoutineSettings?
+  labBookings    BioSyncLabBooking[]
+}
+
+model BioSyncBloodReport {
+  id          String           @id @default(uuid())
+  userId      String
+  source      String
+  reportDate  DateTime
+  uploadedAt  DateTime         @default(now())
+  pdfFileName String?
+  pdfUrl      String?
+  profile     BioSyncProfile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  biomarkers  BioSyncBiomarker?
+
+  @@index([userId, reportDate(sort: Desc)])
+}
+
+model BioSyncBiomarker {
+  bloodReportId String             @id
+  iron          Float
+  vitaminD      Float
+  vitaminB12    Float
+  magnesium     Float
+  bloodSugar    Float
+  cholesterol   Float
+  bloodReport   BioSyncBloodReport @relation(fields: [bloodReportId], references: [id], onDelete: Cascade)
+}
+
+model BioSyncLifestyle {
+  userId    String         @id
+  diet      String
+  allergies String[]       @default([])
+  updatedAt DateTime       @updatedAt
+  profile   BioSyncProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BioSyncWearableSnapshot {
+  id              String         @id @default(uuid())
+  userId          String
+  date            DateTime
+  steps           Int
+  restingHeartRate Float
+  hrv             Float
+  sleepHours      Float
+  workoutMinutes  Float
+  caloriesBurned  Float?
+  waterIntakeMl   Float?
+  syncedAt        DateTime       @default(now())
+  profile         BioSyncProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date(sort: Desc)])
+}
+
+model BioSyncMoodLog {
+  id        String         @id @default(uuid())
+  userId    String
+  date      DateTime
+  mood      String
+  note      String?
+  createdAt DateTime       @default(now())
+  profile   BioSyncProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date(sort: Desc)])
+}
+
+model BioSyncRoutineSettings {
+  userId    String         @id
+  enabled   Boolean        @default(false)
+  wakeTime  String?
+  updatedAt DateTime       @updatedAt
+  profile   BioSyncProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BioSyncLabBooking {
+  id            String         @id @default(uuid())
+  userId        String
+  preferredDate DateTime
+  labName       String?
+  status        String
+  createdAt     DateTime       @default(now())
+  profile       BioSyncProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, preferredDate(sort: Desc)])
+}
